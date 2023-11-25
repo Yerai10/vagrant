@@ -1,0 +1,86 @@
+Documentacion de Vagrant con MySQL.
+
+Este script automatiza la instalación y configuración de
+un entorno LAMP (Linux, Apache, MySQL, PHP) en una máquina
+virtual Vagrant. Al ejecutar Vagrant con este script, 
+obtendrás un entorno de desarrollo listo para PHP y MySQL
+con phpMyAdmin.
+
+#Vagrant.configure("2") do |config|
+Inicia la configuración de Vagrant, indicando
+que se utilizará la versión 2 de la configuración.
+
+#  config.vm.define "mvmysql" do |db|
+Define una máquina virtual con el nombre "mvmysql". 
+
+# config.vm.box = "ubuntu/xenial64"
+Especifica la imagen de la caja de la máquina virtual. 
+En este caso, se utiliza "ubuntu/xenial64", que es una 
+imagen de Ubuntu 16.04
+
+#config.vm.boot_timeout = 600
+Establece el tiempo máximo de arranque de la máquina
+virtual en 600 segundos.
+
+# config.vm.provider "virtualbox" do |vb|
+Configura el proveedor de la máquina virtual como VirtualBox.
+# vb.memory = "2048"
+Asigna 2048 MB de RAM 
+
+#vb.cpus = 2
+Configura la máquina virtual con 2 CPUs.
+
+#db.vm.network "public_network", bridge: "eth0", ip: "192.168.1.237"
+Configura una interfaz de red pública con una dirección IP estática.
+
+#db.vm.network "forwarded_port", guest: 3306, host: 3306
+Hace un reenvío de puerto para permitir la conexión al puerto 3306 
+del invitado desde el puerto 3306 del host.
+
+# db.vm.network "forwarded_port", guest: 80, host: 8306
+Hace un reenvío de puerto para permitir la conexión al puerto 80 
+del invitado desde el puerto 8306 del host.
+
+#db.vm.provision "shell", inline: <<-SHELL
+Configura el aprovisionamiento utilizando un script shell en línea.
+
+#sudo apt-get update 
+Actualiza la lista de paquetes disponibles.
+
+#sudo apt-get install -y vim curl build-essential python-software-properties git
+Instala varios paquetes útiles como Vim, curl, build-essential,
+Python Software Properties y Git.
+
+#DBPASSWD="vagrant"
+#DBNAME="mysql"
+#DBUSER="vagrant"
+Define las variables para faclitar la configuración.
+
+#sudo debconf-set-selections <<<
+Se utiliza para establecer respuestas predeterminadas a las preguntas
+de configuración de MySQL y phpMyAdmin
+
+#sudo apt-get -y install mysql-server phpmyadmin
+Se instala los paquetes MySQL Server y phpMyAdmin
+
+#mysql -uroot -p$DBPASSWD -e "CREATE DATABASE $DBNAME"
+#mysql -uroot -p$DBPASSWD -e "GRANT ALL PRIVILEGES ON $DBNAME.* TO '$DBUSER'@'%' IDENTIFIED BY '$DBPASSWD'"
+#sudo sed -i 's/bind-address.*/bind-address = 0.0.0.0/' /etc/mysql/mysql.conf.d/mysqld.cnf
+#sudo service mysql restart
+Se crea una base de datos y se otorgan privilegios al usuario definido.
+Se configura MySQL para escuchar en todas las interfaces de red (bind-address = 0.0.0.0).
+
+#sudo apt-get -y install php apache2 libapache2-mod-php php-curl php-gd php-mysql php-gettext
+#sudo a2enmod rewrite
+#sudo sed -i "s/AllowOverride None/AllowOverride All/g" /etc/apache2/apache2.conf
+#sudo service apache2 restart
+Se instala PHP y Apache
+Se habilita el módulo de reescritura de Apache.
+Se modifica la configuración de Apache para permitir la reescritura.
+Se reinicia el servicio Apache para aplicar los cambios.
+
+#sudo sed -i "s/error_reporting = .*/error_reporting = E_ALL/" /etc/php/7.0/apache2/php.ini
+#sudo sed -i "s/display_errors = .*/display_errors = On/" /etc/php/7.0/apache2/php.ini
+#sudo service apache2 restart
+Configuramos PHP ajustando las configuraciones de error para mostros los errores
+y despues se reinicia Apache para aplicar las configuraciones. 

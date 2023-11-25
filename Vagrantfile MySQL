@@ -1,0 +1,79 @@
+Vagrant.configure("2") do |config|
+  config.vm.define "mvmysql" do |db|
+    config.vm.box = "ubuntu/xenial64"
+    config.vm.boot_timeout = 600
+
+    config.vm.provider "virtualbox" do |vb|
+      vb.memory = "2048"
+      vb.cpus = 2
+    end
+
+    db.vm.network "public_network", bridge: "eth0", ip: "192.168.1.237"
+    db.vm.network "forwarded_port", guest: 3306, host: 3306
+    db.vm.network "forwarded_port", guest: 80, host: 8306
+
+    db.vm.provision "shell", inline: <<-SHELL
+      sudo apt-get update 
+      sudo apt-get install -y vim curl build-essential python-software-properties git
+
+      DBPASSWD="vagrant"
+      DBNAME="mysql"
+      DBUSER="vagrant"
+
+      sudo debconf-set-selections <<< "mysql-server mysql-server/root_password password $DBPASSWD" 
+      sudo debconf-set-selections <<< "mysql-server mysql-server/root_password_again password $DBPASSWD"
+
+      sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/dbconfig-install boolean true"
+      sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/app-password-confirm password $DBPASSWD"
+      sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/admin-pass password $DBPASSWD"
+      sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/app-pass password $DBPASSWD"
+      sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/reconfigure-webserver multiselect none"
+
+      sudo apt-get -y install mysql-server phpmyadmin
+
+      mysql -uroot -p$DBPASSWD -e "CREATE DATABASE $DBNAME"
+      mysql -uroot -p$DBPASSWD -e "GRANT ALL PRIVILEGES ON $DBNAME.* TO '$DBUSER'@'%' IDENTIFIED BY '$DBPASSWD'"
+
+      sudo sed -i 's/bind-address.*/bind-address = 0.0.0.0/' /etc/mysql/mysql.conf.d/mysqld.cnf
+      sudo service mysql restart
+
+      sudo apt-get -y install php apache2 libapache2-mod-php php-curl php-gd php-mysql php-gettext
+      sudo a2enmod rewrite
+
+      sudo sed -i "s/AllowOverride None/AllowOverride All/g" /etc/apache2/apache2.conf
+
+      sudo rm -rf /var/www/html
+      sudo ln -fs /vagrant/public /var/www/html
+
+      sudo sed -i "s/error_reporting = .*/error_reporting = E_ALL/" /etc/php/7.0/apache2/php.ini
+      sudo sed -i "s/display_errors = .*/display_errors = On/" /etc/php/7.0/apache2/php.ini
+      
+      sudo service apache2 restart
+    SHELL
+  end
+end
+
+
+### Configuracion ssh:
+    # Eliminar la regla NAT existente si existe
+    #vb.customize ["modifyvm", :id, "--natpf1", "delete", "ssh"]
+    # Agregar la nueva regla NAT
+    #vb.customize ["modifyvm", :id, "--natpf1", "ssh,tcp,,2222,,22"]
+    
+
+  ### Configuracion ssh (Usuario y clave como False)
+  #config.ssh.username = "vagrant"  # El nombre de usuario
+  #config.ssh.insert_key = false
+
+  #config.vm.provision "shell", inline: <<-SHELL
+  # Actualiza la lista de paquetes e instala MySQL Server
+  #sudo apt-get update
+  #sudo apt-get install -y mysql-server
+  
+  # Configura MySQL para permitir conexiones remotas
+  #sudo sed -i 's/bind-address.*/bind-address = 0.0.0.0/' /etc/mysql/mysql.conf.d/mysqld.cnf
+  #sudo service mysql restart
+#SHELL
+
+
+
