@@ -1,0 +1,53 @@
+Se trata de un script de configuración para Vagrant que crea dos
+máquinas virutales, una hará de servidor (web) y la otra como una base de datos
+MySQL(db). 
+
+#Vagrant.configure("2") do |config|
+En esta primera parte se incia la configuración principal de Vagrant (se indica que usa la versión 2).
+El bloque 'do | config |' se encuentran todas las configuraciones para la maquina virtual.
+  #config.vm.box = "ubuntu/bionic64"
+Se indica la imagen preconfigurada (box) por el sistema operativo
+  que se usaremos como base para crear la maquina, en este caso Ubuntu (Bionic Beaver).
+  #config.vm.define "web" do |web|
+Se define una maquina virutal y la nombra web.
+  #web.vm.network "private_network", ip: "192.168.33.10"
+Configura una interfaz de red privada con una dirección IP estática (192.168.33.10).
+  #web.vm.provision "shell", inline: <<-SHELL
+En esta linea se configura el aprovisionamiento de la maquina virtual web, utilizando un script
+shell en linea.
+  #sudo apt-get update
+Actualizada la lista de paquetes disponibles.
+  #sudo apt-get install -y apache2
+Instalamos Apache
+  #sudo rm /var/www/html/index.html
+Elimina la pagina de inicio (es la pagina que predeterminada de Apache)
+  #echo "<h1>Servidor web</h1>" | sudo tee /var/www/html/index.html
+Crea una nueva pagina de inicio y la pone en la ruta anterior.(Actualiza la pagina predeterminada)
+  #SHELL
+  #end
+#config.vm.define "db" do |db|
+Define la segunda maquina y la da un nombre (db)
+#db.vm.network "private_network", ip: "192.168.33.11"
+Configura la interdaz privada con una direccion IP estática (192.168.33.11)
+#db.vm.provision "shell", inline: <<-SHELL
+En esta linea configuramos el aprovisionamiento como anteriormente en linea a través de un script shell para
+db (segunda maquina)
+#sudo apt-get update
+Actualiza de nuevo los paquetes disponibles.
+#sudo apt-get install -y mysql-server
+Instala un servidor de BBDD MySQL. 
+#sudo mysql -e "CREATE DATABASE vagrant;" 
+Comando para crear una BBDD
+#sudo mysql -e "CREATE USER 'vagrant'@'%' IDENTIFIED BY 'vagrant';"
+Comando para crear un Usuario con nombre vagrant, (% indica que el usuario puede iniciar sesion desde cualquier host )
+#sudo mysql -e "GRANT ALL PRIVILEGES ON vagrant.* TO 'vagrant'@'%';"
+Comando para otorgar todos los privilegios.
+#sudo mysql -e "FLUSH PRIVILEGES;"
+Ejecuta el cliente en linea 
+#sudo sed -i 's/127.0.0.1/0.0.0.0/g' /etc/mysql/mysql.conf.d/mysqld.cnf
+Modifica el archivo de configuracion de MySQL, reemplanza las estancias 127.0.0.1 con 0.0.0.0 permitiendo las conexiones de cualquier
+dirección IP.
+#sudo service mysql restart
+Aplica los cambios de configuración anteriores.
+
+
