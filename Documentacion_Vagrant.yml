@@ -1,0 +1,156 @@
+Se trata de un código escrito en Ruby y se utiliza para configurar una máquina virtual con Vagrant.
+Vagrant es una herramienta que facilita la creación y gestión de entornos de desarrollo virtualizados.
+
+Si observamos el codigo podemos observar sus diferentes partes:
+
+ #Vagrant.configure("2") do |config|
+
+En esta primera parte se incia la configuración principal de Vagrant.
+El bloque 'do | config |' se encuentran todas las configuraciones para la maquina virtual.
+
+#config.vm.box = "boxen/ubuntu-22.04-x86_64"
+En la segunda parte se asigna el nombre de la imagen preconfigurada (box) por el sistema operativo
+que se usará como base para crear la maquina. 
+
+#config.vm.define "mv_ejercicio"
+En la tercera parte asigamos el nombre de la maquina virtual que nos permitirá referirnos a la mv 
+cuando interaccionemos con Vagrant (nuestro caso será "mv_ejercicio")
+
+#config.vm.boot_timeout = 600
+En la cuarta parte estableceremos el tiempo máximo de espera para que la mv se inicie. 
+(600 seg = 10 min)
+
+#config.vm.provider "virtualbox" do |vb|
+#  vb.memory = "2048"
+# vb.cpus = 2
+#end
+En esta quinta parte configuramos el proveedor (VirtualBox). A su vez asignaremos los recursos
+de hardware (2GB de RAM y 2 CPUs)
+
+Para configurar el SSH y poner conectarnos en el VS con el Remote realizaremos los siguientes pasos
+Primero eliminamos la regla NAT existente si existe.
+#vb.customize ["modifyvm", :id, "--natpf1", "delete", "ssh"]
+Y despues agregamos la nueva regla NAT con la configuración de puertos desde el 2222 del host al
+puerto 22 de la maquina virtual. Con esta linea basicamente agrega una nueva regla NAT (llamada SSH)
+que redirige el tráfico desde el puerto 2222 del host al puerto 22 de la máquina virtual.
+#vb.customize ["modifyvm", :id, "--natpf1", "ssh,tcp,,2222,,22"]
+
+
+#config.vm.network "private_network", ip: "192.168.33.10"
+En la sexta parte configuramos la red (privada) para la mv con una direccion de IP estática que nos 
+permite la comunicación privada con la maquina virtual.
+
+#config.ssh.username = "vagrant"  # El nombre de usuario
+Configuramos el mombre de usuario que se usará al conectarse a la máquina virtual a través de SSH. 
+#config.ssh.insert_key = false
+Esta configuración controla si se debe insertar automaticamente la clase SSH del host en la mv. Al 
+ponerlo como false estamos diciendo que no queremos que Vagrant inserte automáticamente la clave
+SSH del host en la mv.
+
+
+#config.vm.provision "shell", run: "once", inline: <<-SHELL
+En la septima parte del script configuramos "provision" utilizando un script de shell.
+A su vez, indicamos que solo se ejecute una vez con el comando run:"once"
+
+Primero se actualiza el sistema
+#sudo apt-get update
+Segundo se instala Java 8 y se habilita e inicia el servicio.
+#sudo apt-get install -y openjdk-8-jre
+#sudo systemctl enable openjdk-8-jre
+#sudo systemctl start openjdk-8-jre
+
+Despues se descarga Hadoop a través de una URL mediante el comando 'wget'
+#wget https://downloads.apache.org/hadoop/common/hadoop-3.3.6/hadoop-3.3.6.tar.gz
+
+A continuación descomprimimos y extraemos el archivo mediante el comando 'tar' el
+comando 'xzvf'significa lo siguiente; 'x' = Extraer el contenido del archivo.
+'z' = Usa el gzip para descomprimir; 'v' = Muestra la información detallada ; 
+'f' = Especifica el archivo donde se realizará la operación
+#tar -xzvf hadoop-3.3.1.tar.gz
+
+Despues movemos el directorio de Hadoop a una nueva ubicacion, donde el comando
+'sudo' como siempre este comando ejecuta con privilegios de superusuario; 
+'mv' = comando de linux usado para mover; y por ultimo el nombre del directorio que
+se descomprimió del archivo descargado. 
+#sudo mv hadoop-3.3.6 /opt/hadoop
+
+Por ultimo instalamos Hadoop usando sudo (superusuarios); apt-get = es el sistema de
+gestion de paquetes; install = instalador del paquete Hadoop; -y = evita que se 
+solicite confirmación durante la instalación.  
+#sudo apt-get install -y hadoop
+
+La ultima linea marca el final del bloque del script de shell dentro del archivo de 
+configuracion de Vagrant. 
+#SHELL
+
+'''
+Un poco más sobre provision...
+
+En Vagrant, la provisión se utiliza para automatizar la configuración de software y 
+la realización de tareas específicas en la máquina virtual recién creada.
+La provisión permite definir scripts o configuraciones que se ejecutarán durante
+la creación o reinicio de la máquina virtual. Esto es útil para instalar software, 
+configurar servicios, ajustar configuraciones, entre otras tareas, sin tener que 
+realizarlas manualmente.
+
+Se puede hacer de varias maneras:
+1.Puedes utilizar scripts de shell para realizar una serie de comandos en la máquina virtual,
+tal y como hemos realizado en nuestro ejercicio anterior.
+2. Puedes realizarlo con Ansible, una herramienta de aprovisionamiento que permite
+describir la configuración de la máquina en un formato legible.
+Ejemplo:
+'''
+#config.vm.provision "ansible" do |ansible|
+#ansible.playbook = "site.yml"
+#end
+'''
+3. También puedes usar herramientas de configuración como Chef o Puppet para definir la 
+configuración de la máquina virtual.
+Ejemplo:
+
+'''
+#config.vm.provision "chef_solo" do |chef|
+#chef.cookbooks_path = "cookbooks"
+#chef.add_recipe "apache2"
+#end
+'''
+4. Puedes proporcionar un script externo que contenga las instrucciones de provisión.
+Ejemplo:
+'''
+#config.vm.provision "shell", path: "provision.sh"
+'''
+
+A continuacion, indico algunos de los comandos vagrant que he encontrado de uso más comunes: 
+
+    autocomplete    manages autocomplete installation on host
+     box             manages boxes: installation, removal, etc.
+     cloud           manages everything related to Vagrant Cloud
+     destroy         stops and deletes all traces of the vagrant machine
+     global-status   outputs status Vagrant environments for this user
+     halt            stops the vagrant machine
+     help            shows the help for a subcommand
+     init            initializes a new Vagrant environment by creating a Vagrantfile
+     login
+     package         packages a running vagrant environment into a box
+     plugin          manages plugins: install, uninstall, update, etc.
+     port            displays information about guest port mappings
+     powershell      connects to machine via powershell remoting
+     provision       provisions the vagrant machine
+     push            deploys code in this environment to a configured destination
+     rdp             connects to machine via RDP
+     reload          restarts vagrant machine, loads new Vagrantfile configuration
+     resume          resume a suspended vagrant machine
+     serve           start Vagrant server
+     snapshot        manages snapshots: saving, restoring, etc.
+     ssh             connects to machine via SSH
+     ssh-config      outputs OpenSSH valid configuration to connect to the machine
+     status          outputs status of the vagrant machine
+     suspend         suspends the machine
+     up              starts and provisions the vagrant environment
+     upload          upload to machine via communicator
+     validate        validates the Vagrantfile
+     version         prints current and latest Vagrant version
+     winrm           executes commands on a machine via WinRM
+     winrm-config    outputs WinRM configuration to connect to the machine
+
+     '''
